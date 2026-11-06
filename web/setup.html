@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up SpiDrive</title>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#fff; --panel-2:#f0f2f5; --line:#e3e6eb; --text:#1b1f24; --muted:#6b7380;
+  --accent:#2a8fd8; --accent-soft:#e3f1fb; --danger:#d64545; --ok:#2f9e6b; --warn:#c98a12;
+  --shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121417; --panel:#1a1d21; --panel-2:#22262b; --line:#2c3137; --text:#e7e9ec; --muted:#8e96a1;
+    --accent:#4ea8ea; --accent-soft:#1d3346; --danger:#ec6b6b; --ok:#4cc08a; --warn:#e0a83a;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.3);}
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--text);font:15px/1.5 "Segoe UI",system-ui,Tahoma,sans-serif;display:grid;place-items:start center;padding:48px 16px}
+.card{width:min(520px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:28px}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.logo{width:40px;height:40px;border-radius:11px;background:var(--accent);display:grid;place-items:center;color:#fff}
+.brand b{font-size:18px}.brand small{display:block;color:var(--muted);font-size:13px}
+.steps{display:flex;gap:6px;margin-bottom:22px}
+.steps i{flex:1;height:4px;border-radius:99px;background:var(--panel-2)}
+.steps i.on{background:var(--accent)}
+h1{font-size:20px;margin:0 0 6px}
+p{margin:0 0 14px;color:var(--muted)}
+label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+input[type=text],input[type=password],input[type=tel],select{width:100%;height:42px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:0 12px;font:inherit;outline:none}
+input:focus,select:focus{border-color:var(--accent);background:var(--panel)}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+.row{display:flex;gap:10px;align-items:center}
+.btn{height:42px;padding:0 18px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;cursor:pointer}
+.btn:hover{background:var(--panel-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn[disabled]{opacity:.6;cursor:default}
+.actions{display:flex;justify-content:space-between;gap:10px;margin-top:24px}
+.choice{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px;cursor:pointer}
+.choice:hover{background:var(--panel-2)}
+.choice input{margin-top:4px}
+.choice b{display:block}
+.choice span{color:var(--muted);font-size:13px}
+.err{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger);border-radius:9px;padding:10px 12px;margin-top:14px;display:none;font-size:14px}
+.err.on{display:block}
+.note{background:var(--accent-soft);border-radius:9px;padding:10px 12px;font-size:13.5px;margin-top:12px}
+.warn{background:color-mix(in srgb,var(--warn) 14%,transparent);border-radius:9px;padding:10px 12px;font-size:13.5px;margin-top:10px}
+details{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+summary{cursor:pointer;color:var(--accent);font-size:14px}
+a{color:var(--accent)}
+.toggle{display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer}
+.spin{width:22px;height:22px;border:3px solid var(--panel-2);border-top-color:var(--accent);border-radius:50%;animation:s 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 3.2 2.9 10.4c-1.3.5-1.3 1.2-.2 1.6l4.8 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.8c.3-1.3-.5-1.9-1.4-1.5z"/></svg></div>
+    <div><b>SpiDrive</b><small>Your Telegram account as a drive</small></div>
+  </div>
+  <div class="steps" id="steps"><i></i><i></i><i></i><i></i></div>
+
+  <!-- 0: API ID -->
+  <section data-step="api" class="hidden">
+    <h1>Connect to Telegram</h1>
+    <p>SpiDrive needs an app ID from Telegram. It's free and takes a minute.</p>
+    <ol class="hint" style="padding-left:18px;margin:0">
+      <li>Open <a href="https://my.telegram.org/apps" target="_blank" rel="noopener">my.telegram.org/apps</a> and log in.</li>
+      <li>Create an app (any name, for example SpiDrive).</li>
+      <li>Copy <b>App api_id</b> and <b>App api_hash</b> here.</li>
+    </ol>
+    <label for="apiId">API ID</label><input type="text" id="apiId" inputmode="numeric" autocomplete="off">
+    <label for="apiHash">API hash</label><input type="text" id="apiHash" autocomplete="off" spellcheck="false">
+    <div class="actions"><span></span><button class="btn primary" data-go="api">Continue</button></div>
+  </section>
+
+  <!-- 1: phone / import -->
+  <section data-step="phone" class="hidden">
+    <h1>Log in to Telegram</h1>
+    <p>Telegram will send a login code to your Telegram app.</p>
+    <div id="legacyBox" class="hidden">
+      <div class="note"><b>Found your existing SpiDrive</b> in <span id="legacyPath"></span>. Use it, with your files and login?</div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" data-go="useLegacy">Use my existing SpiDrive</button></div>
+      <p style="margin:18px 0 0">Or log in fresh:</p>
+    </div>
+    <label for="phone">Phone number</label>
+    <input type="tel" id="phone" placeholder="+98 912 345 6789" autocomplete="tel">
+    <div class="hint">With the country code. It must be the number of your Telegram account.</div>
+    <div class="actions"><span></span><button class="btn primary" data-go="phone">Send code</button></div>
+    <details>
+      <summary>I already use SpiDrive in another folder</summary>
+      <label for="legacyFolder">Folder that has config.py and session.session</label>
+      <input type="text" id="legacyFolder" placeholder="D:\TelegramDrive">
+      <div class="row" style="margin-top:10px"><button class="btn" data-go="import">Import</button></div>
+    </details>
+  </section>
+
+  <!-- 2: code -->
+  <section data-step="code" class="hidden">
+    <h1>Enter the code</h1>
+    <p>Telegram sent a code to your Telegram app (not by SMS). Look for a message from "Telegram".</p>
+    <label for="code">Login code</label><input type="text" id="code" inputmode="numeric" autocomplete="one-time-code">
+    <div class="actions"><button class="btn" data-go="back-phone">Back</button><button class="btn primary" data-go="code">Log in</button></div>
+  </section>
+
+  <!-- 3: 2FA -->
+  <section data-step="password" class="hidden">
+    <h1>Two-step verification</h1>
+    <p>Your account has a cloud password. Enter it to finish logging in.</p>
+    <label for="pw">Password</label><input type="password" id="pw" autocomplete="current-password">
+    <div class="actions"><span></span><button class="btn primary" data-go="password">Continue</button></div>
+  </section>
+
+  <!-- 4: channel -->
+  <section data-step="channel" class="hidden">
+    <h1>Where should files be stored?</h1>
+    <p>Logged in as <b id="meName"></b>. SpiDrive keeps your files in a private channel that only you can see.</p>
+    <div id="chanList"></div>
+    <div class="actions"><span></span><button class="btn primary" data-go="channel">Continue</button></div>
+  </section>
+
+  <!-- 5: options -->
+  <section data-step="options" class="hidden">
+    <h1>A few choices</h1>
+    <p>You can change these later in Settings.</p>
+    <label class="toggle"><input type="checkbox" id="enc"> <span><b>Encrypt files</b> before they leave this PC (AES-256)</span></label>
+    <div id="encBox" class="hidden">
+      <label for="pass1">Encryption passphrase</label><input type="password" id="pass1" autocomplete="new-password">
+      <label for="pass2">Type it again</label><input type="password" id="pass2" autocomplete="new-password">
+      <div class="warn">If you forget this passphrase, encrypted files <b>cannot be recovered</b> by anyone. Write it down somewhere safe.</div>
+    </div>
+    <div id="encKept" class="hint hidden">Your existing passphrase was imported.</div>
+    <label for="letter">Drive letter in File Explorer</label>
+    <select id="letter"></select>
+    <label for="syncLocal">Sync a folder on this PC (optional)</label>
+    <input type="text" id="syncLocal" placeholder="for example  D:\SpiDrive Sync">
+    <div class="hint">It stays in two-way sync with the folder <b>/Sync</b> on the drive. Leave empty to skip.</div>
+    <label class="toggle"><input type="checkbox" id="auto" checked> <span>Start SpiDrive when I sign in to Windows</span></label>
+    <div class="actions"><span></span><button class="btn primary" data-go="finish">Finish setup</button></div>
+  </section>
+
+  <!-- 6: done -->
+  <section data-step="done" class="hidden">
+    <h1><span class="spin"></span>Starting SpiDrive…</h1>
+    <p>This takes a few seconds. The dashboard opens here by itself. Drive <b id="doneLetter">S:</b> appears in File Explorer, and SpiDrive's icon sits next to the clock.</p>
+  </section>
+
+  <div class="err" id="err"></div>
+
+  <div id="connBox" class="hidden">
+    <details id="connDetails">
+      <summary>Connection: <span id="connNow">checking…</span></summary>
+      <p style="margin-top:10px">If Telegram is blocked where you are, SpiDrive can connect through a proxy.</p>
+      <div class="row"><button class="btn" data-go="findProxy">Find a working proxy automatically</button></div>
+      <label for="pLink">Or paste a proxy link</label>
+      <input type="text" id="pLink" placeholder="tg://proxy?server=…   or   socks5://127.0.0.1:10808" spellcheck="false">
+      <div class="hint">MTProxy (tg:// or t.me/proxy), SOCKS5 or HTTP. A VPN app on this PC (v2rayN, Nekoray, Clash) is found automatically.</div>
+      <div class="row" style="margin-top:10px"><button class="btn" data-go="useProxy">Use this proxy</button><button class="btn" data-go="direct">Connect directly</button></div>
+    </details>
+  </div>
+  <div id="loading" class="note"><span class="spin"></span>Connecting to Telegram… If it is blocked, SpiDrive looks for a working proxy. This can take up to a minute.</div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const st = { channelChoice: 'new', legacy: null, passKept: false };
+const ORDER = ['api', 'phone', 'code', 'password', 'channel', 'options', 'done'];
+const BAR = { api: 1, phone: 1, code: 2, password: 2, channel: 3, options: 4, done: 4 };
+
+function show(step) {
+  $('#loading').classList.add('hidden');
+  $('#connBox').classList.toggle('hidden', step === 'done' || step === 'api');
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('hidden', s.dataset.step !== step));
+  document.querySelectorAll('#steps i').forEach((b, i) => b.classList.toggle('on', i < BAR[step]));
+  $('#err').classList.remove('on');
+  const first = document.querySelector(`section[data-step="${step}"] input`);
+  if (first) setTimeout(() => first.focus(), 50);
+}
+function err(msg) { const e = $('#err'); e.textContent = msg; e.classList.add('on'); }
+async function call(path, body) {
+  const r = await fetch('/api/setup/' + path, body === undefined ? {} :
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({ error: 'SpiDrive did not answer. Is it still running?' }));
+  if (!r.ok || j.error) throw new Error(j.error || r.statusText);
+  return j;
+}
+async function busy(btn, fn) {
+  btn.disabled = true; const t = btn.textContent; btn.textContent = 'Please wait…';
+  try { await fn(); } catch (e) { err(e.message); } finally { btn.disabled = false; btn.textContent = t; }
+}
+
+async function start() {
+  for (let c = 68; c <= 90; c++) { const L = String.fromCharCode(c); $('#letter').insertAdjacentHTML('beforeend', `<option value="${L}">${L}:</option>`); }
+  const s = await call('state');
+  refreshConn();
+  $('#letter').value = (s.letter || 'S:')[0];
+  if (s.phone) $('#phone').value = s.phone;
+  if (s.legacy && s.legacy.length) { st.legacy = s.legacy[0]; $('#legacyPath').textContent = st.legacy; $('#legacyBox').classList.remove('hidden'); }
+  if (s.error) { err(s.error); $('#connDetails').open = true; }
+  if (s.need_api) return show('api');
+  if (!s.logged_in) return show('phone');
+  $('#meName').textContent = s.me;
+  await loadChannels(); show('channel');
+}
+
+async function loadChannels() {
+  const r = await call('channels');
+  const opts = [{ id: 'new', title: 'Create a new private channel called "MyDrive"', sub: 'Recommended for a fresh start.' }]
+    .concat(r.channels.map(c => ({ id: String(c.id), title: c.title, sub: String(c.id) === String(r.current) ? 'Your current SpiDrive channel' : 'A channel you own' })));
+  st.channelChoice = r.current && r.channels.some(c => String(c.id) === String(r.current)) ? String(r.current) : 'new';
+  $('#chanList').innerHTML = opts.map(o => `<label class="choice"><input type="radio" name="ch" value="${o.id}" ${o.id === st.channelChoice ? 'checked' : ''}><div><b dir="auto"></b><span></span></div></label>`).join('');
+  $('#chanList').querySelectorAll('.choice').forEach((el, i) => { el.querySelector('b').textContent = opts[i].title; el.querySelector('span').textContent = opts[i].sub; el.dataset.title = opts[i].id === 'new' ? 'MyDrive' : opts[i].title; });
+}
+
+const actions = {
+  async api() { await call('api', { api_id: $('#apiId').value, api_hash: $('#apiHash').value }); const s = await call('state'); if (s.error) throw new Error(s.error); show('phone'); },
+  async phone() { await call('phone', { phone: $('#phone').value }); show('code'); },
+  'back-phone'() { show('phone'); },
+  async code() { const r = await call('code', { code: $('#code').value }); if (r.need_password) return show('password'); await afterLogin(); },
+  async password() { await call('password', { password: $('#pw').value }); await afterLogin(); },
+  async useLegacy() { await importFrom(st.legacy); },
+  async findProxy() { $('#connNow').textContent = 'looking for a proxy… (up to a minute)'; await call('proxy/find', {}); await afterConn(); },
+  async useProxy() { await call('proxy', { mode: 'manual', link: $('#pLink').value.trim() }); await afterConn(); },
+  async direct() { await call('proxy', { mode: 'off', link: '' }); await afterConn(); },
+  async import() { await importFrom($('#legacyFolder').value); },
+  async channel() {
+    const pick = document.querySelector('input[name=ch]:checked');
+    st.channelChoice = pick ? pick.value : 'new';
+    st.channelTitle = pick ? pick.closest('.choice').dataset.title : 'MyDrive';
+    show('options');
+  },
+  async finish() {
+    const enc = $('#enc').checked;
+    if (enc && !st.passKept) {
+      if ($('#pass1').value.length < 8) throw new Error('Choose an encryption passphrase of at least 8 characters.');
+      if ($('#pass1').value !== $('#pass2').value) throw new Error('The two passphrases are different.');
+    }
+    await call('finish', { channel: st.channelChoice, title: st.channelTitle, encrypt: enc, passphrase: $('#pass1').value,
+      letter: $('#letter').value, sync_local: $('#syncLocal').value, autostart: $('#auto').checked });
+    $('#doneLetter').textContent = $('#letter').value + ':';
+    show('done'); waitForDashboard();
+  },
+};
+
+async function refreshConn() {
+  try {
+    const c = await call('proxy');
+    $('#connNow').textContent = c.searching ? 'looking for a proxy…' : (c.kind === 'direct' ? 'direct' : 'through ' + c.via) + (c.latency_ms ? ` (${c.latency_ms} ms)` : '');
+    if (c.manual_link && !$('#pLink').value) $('#pLink').value = c.manual_link;
+    if (c.error) { err(c.error); $('#connDetails').open = true; }
+  } catch {}
+}
+async function afterConn() {
+  await refreshConn();
+  const s = await call('state');
+  if (s.error) throw new Error(s.error);
+  if (s.need_api) return show('api');
+  if (!s.logged_in) return show('phone');
+  $('#meName').textContent = s.me; await loadChannels(); show('channel');
+}
+async function afterLogin() { const s = await call('state'); $('#meName').textContent = s.me || 'you'; await loadChannels(); show('channel'); }
+async function importFrom(folder) {
+  const r = await call('import', { folder });
+  const s = await call('state');
+  if (r.result && r.result.includes('PASSPHRASE')) { st.passKept = true; $('#enc').checked = r.result.includes('ENCRYPT'); $('#encKept').classList.remove('hidden'); }
+  if (r.result && r.result.includes('DRIVE_LETTER')) { /* letter kept */ }
+  $('#letter').value = (s.letter || 'S:')[0];
+  if (!s.logged_in) { err('Your old login could not be used. Log in with your phone number.'); return show('phone'); }
+  $('#meName').textContent = s.me; await loadChannels(); show('channel');
+}
+function waitForDashboard() {
+  const tick = async () => {
+    try { const r = await fetch('/api/stats', { cache: 'no-store' }); if (r.ok) { location.href = '/'; return; } } catch {}
+    setTimeout(tick, 1500);
+  };
+  setTimeout(tick, 2500);
+}
+
+document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) busy(b, () => actions[b.dataset.go]()); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const sec = document.querySelector('section:not(.hidden)'); const b = sec && sec.querySelector('.btn.primary');
+  if (b && !b.disabled) b.click();
+});
+$('#enc').addEventListener('change', () => $('#encBox').classList.toggle('hidden', !$('#enc').checked || st.passKept));
+start().catch(e => { $('#loading').classList.add('hidden'); $('#connBox').classList.remove('hidden'); $('#connDetails').open = true; err(e.message); });
+</script>
+</body>
+</html>

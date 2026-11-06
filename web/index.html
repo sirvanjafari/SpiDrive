@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpiDrive</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#2a8fd8">
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --panel-2:#f0f2f5; --line:#e3e6eb; --text:#1b1f24; --muted:#6b7380;
+  --accent:#2a8fd8; --accent-soft:#e3f1fb; --danger:#d64545; --ok:#2f9e6b; --warn:#c98a12;
+  --k-image:#3d8bd9; --k-video:#8a5cd6; --k-audio:#d9902b; --k-document:#2f9e6b; --k-archive:#c45a5a; --k-other:#8a929e;
+  --shadow:0 1px 2px rgba(20,30,40,.06),0 4px 16px rgba(20,30,40,.06);
+  --radius:10px;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#121417; --panel:#1a1d21; --panel-2:#22262b; --line:#2c3137; --text:#e7e9ec; --muted:#8e96a1;
+    --accent:#4ea8ea; --accent-soft:#1d3346; --danger:#ec6b6b; --ok:#4cc08a; --warn:#e0a83a;
+    --k-image:#5aa2e6; --k-video:#a27ce6; --k-audio:#e6a54a; --k-document:#4cc08a; --k-archive:#e07878; --k-other:#8e96a1;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.45 "Segoe UI",system-ui,-apple-system,Tahoma,sans-serif}
+button,input{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+
+/* sidebar */
+.side{background:var(--panel);border-right:1px solid var(--line);padding:22px 20px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:#fff}
+.brand b{font-size:17px;letter-spacing:.2px}
+.brand small{display:block;color:var(--muted);font-size:12px}
+.total{font-size:30px;font-weight:600;letter-spacing:-.5px;line-height:1.1}
+.sub{color:var(--muted);font-size:13px}
+.bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--panel-2);margin:12px 0 10px}
+.bar span{height:100%}
+.legend{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.legend li{display:grid;grid-template-columns:10px 1fr auto;gap:9px;align-items:center;font-size:13px}
+.legend i{width:10px;height:10px;border-radius:3px}
+.legend em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta{display:grid;gap:8px;font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+.meta div{display:flex;justify-content:space-between;gap:10px}
+.meta span{color:var(--muted)}
+.pill{padding:1px 8px;border-radius:99px;font-size:12px;background:var(--panel-2)}
+.pill.on{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.hint{font-size:12.5px;color:var(--muted);background:var(--panel-2);border-radius:var(--radius);padding:12px;margin-top:auto}
+.hint b{color:var(--text);font-weight:600}
+.hint button{margin-top:8px}
+
+/* main */
+main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;gap:10px;align-items:center;padding:16px 24px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);padding:0 34px 0 36px;outline:none}
+.search input:focus{border-color:var(--accent);background:var(--panel)}
+.search svg{position:absolute;left:11px;top:11px;color:var(--muted)}
+.search .clear{position:absolute;right:6px;top:6px;display:none}
+.btn{height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn:hover{background:var(--panel-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.icon{width:38px;padding:0;justify-content:center}
+.btn.sm{height:30px;padding:0 10px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--panel-2)}
+.crumbs{display:flex;align-items:center;gap:4px;padding:14px 24px 6px;flex-wrap:wrap;font-size:15px}
+.crumbs a{color:var(--muted);text-decoration:none;padding:3px 7px;border-radius:6px;cursor:pointer}
+.crumbs a:hover{background:var(--panel-2);color:var(--text)}
+.crumbs a:last-child{color:var(--text);font-weight:600}
+.crumbs .sep{color:var(--muted);opacity:.6}
+#content{padding:8px 24px 120px}
+
+/* list */
+table{width:100%;border-collapse:collapse}
+th{font-weight:500;color:var(--muted);font-size:12.5px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;white-space:nowrap}
+th.num,td.num{text-align:right}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--panel)}
+.name{display:flex;align-items:center;gap:11px;min-width:0}
+.name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ico{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;flex:none}
+.ico svg{width:17px;height:17px}
+.tag{font-size:11px;padding:1px 6px;border-radius:5px;background:var(--panel-2);color:var(--muted);margin-left:6px;flex:none}
+.tag.warn{color:var(--warn)}
+td.dim{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.acts{white-space:nowrap;text-align:right;opacity:0;transition:opacity .1s}
+tr.row:hover .acts,.card:hover .acts{opacity:1}
+.acts button{width:30px;height:30px;border:0;background:transparent;border-radius:7px;cursor:pointer;color:var(--muted)}
+.acts button:hover{background:var(--panel-2);color:var(--text)}
+.acts button.del:hover{color:var(--danger)}
+@media (hover:none){.acts{opacity:1}}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;padding-top:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer;position:relative}
+.card:hover{box-shadow:var(--shadow)}
+.thumb{aspect-ratio:4/3;display:grid;place-items:center;background:var(--panel-2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .ico{width:52px;height:52px;border-radius:12px}
+.thumb .ico svg{width:26px;height:26px}
+.card .cap{padding:8px 10px}
+.card .cap div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .cap small{color:var(--muted)}
+.card .acts{position:absolute;top:6px;right:6px;background:var(--panel);border-radius:8px;box-shadow:var(--shadow)}
+
+.empty{text-align:center;color:var(--muted);padding:70px 20px}
+.empty svg{width:44px;height:44px;opacity:.5;margin-bottom:8px}
+
+/* drop overlay */
+#drop{position:fixed;inset:0;background:color-mix(in srgb,var(--accent) 14%,transparent);border:3px dashed var(--accent);display:none;place-items:center;z-index:40;pointer-events:none}
+#drop div{background:var(--panel);padding:18px 26px;border-radius:12px;box-shadow:var(--shadow);font-size:16px}
+#drop.on{display:grid}
+
+/* upload panel */
+#panel{position:fixed;right:20px;bottom:20px;width:360px;max-width:calc(100vw - 32px);background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:30;display:none;overflow:hidden}
+#panel.on{display:block}
+#panel header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 10px 14px;border-bottom:1px solid var(--line);font-weight:600}
+#panel .list{max-height:300px;overflow:auto}
+#panel.min .list{display:none}
+.job{padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.job:last-child{border-bottom:0}
+.job .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job .s{color:var(--muted);font-size:12px;display:flex;justify-content:space-between;margin-top:3px}
+.job .p{height:4px;background:var(--panel-2);border-radius:99px;margin-top:6px;overflow:hidden}
+.job .p i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.job.done .p i{background:var(--ok)}
+.job.err .s{color:var(--danger)}
+
+/* viewer */
+#viewer{position:fixed;inset:0;background:rgba(8,10,12,.92);z-index:50;display:none;flex-direction:column;color:#eee}
+#viewer.on{display:flex}
+#viewer header{display:flex;align-items:center;gap:10px;padding:12px 16px}
+#viewer header .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+#viewer .btn{background:rgba(255,255,255,.08);border-color:transparent;color:#eee}
+#viewer .btn:hover{background:rgba(255,255,255,.16)}
+#viewer .stage{flex:1;min-height:0;display:grid;place-items:center;position:relative;padding:0 64px 24px}
+#viewer .stage img,#viewer .stage video{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;background:#000}
+#viewer .stage video{width:100%}
+#viewer .audio{display:grid;gap:18px;justify-items:center;width:min(520px,100%)}
+#viewer .audio .art{width:150px;height:150px;border-radius:20px;background:rgba(255,255,255,.07);display:grid;place-items:center;color:var(--k-audio)}
+#viewer .audio audio{width:100%}
+#viewer .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%}
+#viewer .prev{left:12px}#viewer .next{right:12px}
+#viewer .msg{max-width:460px;text-align:center;color:#cfd3d8;line-height:1.6}
+.loading{color:#aab}
+
+#settings{position:fixed;inset:0;background:rgba(10,12,14,.45);z-index:45;display:none;place-items:start center;padding:40px 16px;overflow:auto}
+#settings.on{display:grid}
+#settings .box{width:min(560px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+#settings header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+#settings header b{font-size:16px}
+#settings .body{padding:6px 20px 20px}
+#settings h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:20px 0 8px;font-weight:600}
+#settings label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+#settings input[type=text],#settings input[type=password],#settings select{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);padding:0 10px;outline:none}
+#settings input:focus,#settings select:focus{border-color:var(--accent);background:var(--panel)}
+#settings textarea:focus{border-color:var(--accent);outline:none}
+#settings .chk{display:flex;gap:9px;align-items:center;margin-top:12px;cursor:pointer}
+#settings .help{font-size:12.5px;color:var(--muted);margin-top:5px}
+#settings .warnbox{font-size:12.5px;background:color-mix(in srgb,var(--warn) 14%,transparent);border-radius:8px;padding:8px 10px;margin-top:8px}
+#settings .pair{display:grid;grid-template-columns:1fr 150px 34px;gap:8px;margin-top:8px}
+#settings .foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line)}
+#settings .ro{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+#settings .ro b{color:var(--text);font-weight:500;text-align:right;word-break:break-all}
+#restarting{position:fixed;inset:0;background:var(--bg);z-index:70;display:none;place-items:center;font-size:16px}
+#restarting.on{display:grid}
+.spin-r{width:20px;height:20px;border:3px solid var(--panel-2);border-top-color:var(--accent);border-radius:50%;display:inline-block;vertical-align:middle;margin-right:10px;animation:sr 1s linear infinite}@keyframes sr{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:9px;opacity:0;transition:.2s;z-index:60;pointer-events:none;max-width:90vw}
+#toast.on{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .hint{margin-top:0}
+  .top,.crumbs,#content{padding-left:16px;padding-right:16px}
+  .hide-sm{display:none}
+  .btn .lbl{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 3.2 2.9 10.4c-1.3.5-1.3 1.2-.2 1.6l4.8 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.8c.3-1.3-.5-1.9-1.4-1.5z"/></svg></div>
+      <div style="flex:1"><b>SpiDrive</b><small id="chan">connecting…</small></div>
+      <button class="btn icon sm ghost" id="bSettings" title="Settings" aria-label="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+    <div>
+      <div class="total" id="sTotal">—</div>
+      <div class="sub" id="sCounts">&nbsp;</div>
+      <div class="bar" id="sBar"></div>
+      <ul class="legend" id="sLegend"></ul>
+    </div>
+    <div class="meta" id="sMeta"></div>
+    <div class="hint">
+      <b>Send from Telegram:</b> forward or send any file to the <b id="chan2">MyDrive</b> channel and it appears in <b>Telegram Inbox</b> within a few seconds.
+      <div><button class="btn sm" id="syncNow">Check now</button></div>
+    </div>
+    <div class="hint" style="margin-top:0">
+      <b>In File Explorer:</b> run <b>setup_drive.bat</b> once and SpiDrive appears under <b>This PC</b> as a drive you can drag files into.
+    </div>
+  </aside>
+
+  <main>
+    <div class="top">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" placeholder="Search all files" autocomplete="off" dir="auto">
+        <button class="btn icon sm ghost clear" id="qClear" title="Clear">✕</button>
+      </label>
+      <button class="btn" id="bFolder" title="New folder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg><span class="lbl">New folder</span></button>
+      <button class="btn" id="bUpDir" title="Upload folder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="m9.5 13 2.5-2.5 2.5 2.5M12 11v6"/></svg><span class="lbl">Upload folder</span></button>
+      <button class="btn primary" id="bUp" title="Upload files"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg><span class="lbl">Upload</span></button>
+      <button class="btn icon" id="bView" title="Switch view"></button>
+      <input type="file" id="fFiles" multiple hidden>
+      <input type="file" id="fDir" webkitdirectory multiple hidden>
+    </div>
+    <nav class="crumbs" id="crumbs"></nav>
+    <section id="content"></section>
+  </main>
+</div>
+
+<div id="drop"><div>Drop files or folders to upload here</div></div>
+
+<div id="panel">
+  <header><span id="pTitle">Uploads</span>
+    <span><button class="btn sm ghost" id="pClear">Clear finished</button><button class="btn icon sm ghost" id="pMin" title="Minimise">–</button></span>
+  </header>
+  <div class="list" id="pList"></div>
+</div>
+
+<div id="viewer">
+  <header>
+    <div class="t" id="vTitle" dir="auto"></div>
+    <button class="btn sm" id="vLink" title="Copy a stream link for VLC or another player">Copy link</button>
+    <button class="btn sm" id="vDl">Download</button>
+    <button class="btn icon sm" id="vClose" title="Close (Esc)">✕</button>
+  </header>
+  <div class="stage" id="vStage"></div>
+</div>
+
+<div id="settings" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="box">
+    <header><b id="setTitle">Settings</b><button class="btn icon sm ghost" id="setClose" title="Close">✕</button></header>
+    <div class="body">
+      <div id="setRO" class="warnbox" style="display:none">SpiDrive was started from the command line, so these settings come from <b>config.py</b>. Change them there and restart.</div>
+      <h3>Drive</h3>
+      <label class="f" for="sLetter">Drive letter in File Explorer</label><select id="sLetter"></select>
+      <label class="f" for="sSize">Size File Explorer shows</label><input type="text" id="sSize" placeholder="10T">
+      <div class="help">Telegram has no storage limit; this is only the number Windows displays (for example 10T or 500G).</div>
+      <h3>Encryption</h3>
+      <label class="chk"><input type="checkbox" id="sEnc"> Encrypt new uploads with AES-256</label>
+      <div id="sPassBox"><label class="f" for="sPass">Encryption passphrase</label><input type="password" id="sPass" autocomplete="new-password" placeholder="at least 8 characters"></div>
+      <div class="help" id="sPassInfo"></div>
+      <h3>Two-way sync</h3>
+      <div class="help">Folders on this PC kept in sync with folders on the drive.</div>
+      <div id="sPairs"></div>
+      <button class="btn sm" id="sAddPair" style="margin-top:8px">Add a folder</button>
+      <h3>Connection to Telegram</h3>
+      <label class="f" for="sPMode">How to connect</label>
+      <select id="sPMode">
+        <option value="auto">Automatic: direct, or find a proxy when Telegram is blocked</option>
+        <option value="manual">Always use my proxy</option>
+        <option value="off">Always connect directly</option>
+      </select>
+      <div id="sPLinkBox"><label class="f" for="sPLink">Proxy link</label><input type="text" id="sPLink" placeholder="tg://proxy?server=…  or  socks5://127.0.0.1:10808" spellcheck="false">
+        <div class="help">MTProxy links (tg:// or t.me/proxy), SOCKS5 or HTTP. <button class="btn sm" id="sPTest" style="margin-left:6px">Test</button> <span id="sPTestOut"></span></div></div>
+      <div class="help" id="sPStatus"></div>
+      <button class="btn sm" id="sPFind" style="margin-top:8px">Find a working proxy now</button>
+      <details style="margin-top:10px"><summary class="help" style="cursor:pointer">Proxy lists used by Automatic</summary>
+        <textarea id="sPSources" rows="4" spellcheck="false" style="width:100%;margin-top:6px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);padding:8px;font:12px/1.5 ui-monospace,Consolas,monospace"></textarea>
+        <div class="help">One address per line. Lists of plain ip:port start with <b>socks5+</b>, for example socks5+https://…/proxy.txt</div>
+      </details>
+      <h3>Phone and other devices</h3>
+      <label class="chk"><input type="checkbox" id="sPhone"> Allow opening the dashboard from my phone on this Wi-Fi</label>
+      <div id="sPhoneBox"><label class="f" for="sWebPw">Password for phone access</label><input type="password" id="sWebPw" autocomplete="new-password"><div class="help" id="sPhoneInfo"></div></div>
+      <h3>General</h3>
+      <label class="chk"><input type="checkbox" id="sAuto"> Start SpiDrive when I sign in to Windows</label>
+      <label class="f" for="sChunk">Part size for big files (MB)</label><input type="text" id="sChunk" inputmode="numeric">
+      <div class="help">Smaller parts lose less progress when the connection drops. 256 is a good choice.</div>
+      <div class="ro"><span>Channel</span><b id="sChan"></b></div>
+      <div class="ro"><span>Data folder</span><b id="sData"></b></div>
+    </div>
+    <div class="foot"><button class="btn" id="setCancel">Cancel</button><button class="btn primary" id="setSave">Save and restart</button></div>
+  </div>
+</div>
+<div id="restarting"><div><span class="spin-r"></span>Restarting SpiDrive…</div></div>
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const ICONS = {
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
+  video:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',
+  audio:'<path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  document:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>',
+  other:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  dl:'<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+  share:'<path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  del:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+};
+const KINDS = {image:'Photos', video:'Videos', audio:'Music', document:'Documents', archive:'Archives', other:'Other'};
+const svg = (k, w=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
+const kindIco = k => `<div class="ico" style="background:color-mix(in srgb,var(--k-${k}) 15%,transparent);color:var(--k-${k})">${svg(k==='folder'?'folder':k)}</div>`;
+const folderIco = () => `<div class="ico" style="background:var(--accent-soft);color:var(--accent)">${svg('folder')}</div>`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtSize = n => { if (n == null) return ''; const u=['B','KB','MB','GB','TB']; let i=0; while (n >= 1024 && i < u.length-1) { n/=1024; i++; } return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + ' ' + u[i]; };
+const fmtDate = t => t ? new Date(t*1000).toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+const fileUrl = (f, dl) => `/f/${f.id}/${encodeURIComponent(f.name)}${dl ? '?dl=1' : ''}`;
+const join = (a, b) => (a === '/' ? '' : a) + '/' + b;
+const store = { get(k, d) { try { return localStorage.getItem(k) || d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+const state = { path:'/', q:'', dirs:[], files:[], view:store.get('view','list'), sort:store.get('sort','name'), asc:store.get('asc','1')==='1', version:null };
+
+async function api(url, body) {
+  const opt = body === undefined ? {} : { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) };
+  const r = await fetch(url, opt);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+let toastT;
+function toast(msg) { const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'), 3200); }
+
+/* ---------- navigation ---------- */
+function pathFromHash() { try { return decodeURIComponent(location.hash.slice(1)) || '/'; } catch { return '/'; } }
+function go(path) { if (state.q) { state.q=''; $('#q').value=''; syncClear(); } if (pathFromHash() === path) load(); else location.hash = encodeURIComponent(path); }
+window.addEventListener('hashchange', () => { state.path = pathFromHash(); state.q=''; $('#q').value=''; syncClear(); load(); });
+
+async function load() {
+  try {
+    const d = state.q ? await api('/api/search?q=' + encodeURIComponent(state.q))
+                      : await api('/api/list?path=' + encodeURIComponent(state.path));
+    state.dirs = d.dirs || []; state.files = d.files || [];
+    render();
+  } catch (e) {
+    if (!state.q && state.path !== '/') { toast(e.message); go('/'); }
+    else { $('#content').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+  }
+}
+
+/* ---------- rendering ---------- */
+function sorted() {
+  const k = state.sort, m = state.asc ? 1 : -1;
+  const files = [...state.files].sort((a, b) =>
+    k === 'size' ? m*(a.size-b.size) : k === 'date' ? m*(a.created-b.created) : m*a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+  const dirs = [...state.dirs].sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+  return { dirs, files };
+}
+
+function render() {
+  const c = $('#crumbs');
+  if (state.q) c.innerHTML = `<a>Search results for “${esc(state.q)}”</a>`;
+  else {
+    const parts = state.path.split('/').filter(Boolean);
+    let acc = '', html = `<a data-go="/">My Drive</a>`;
+    for (const p of parts) { acc += '/' + p; html += `<span class="sep">›</span><a data-go="${esc(acc)}" dir="auto">${esc(p)}</a>`; }
+    c.innerHTML = html;
+  }
+  $('#bView').innerHTML = svg(state.view === 'list' ? 'grid' : 'list');
+  const { dirs, files } = sorted();
+  state.shown = files;
+  const el = $('#content');
+  if (!dirs.length && !files.length) {
+    el.innerHTML = `<div class="empty">${svg(state.q ? 'other' : 'folder', 1.5)}<div>${state.q ? 'No files match your search.' : 'This folder is empty. Drop files here or use Upload.'}</div></div>`;
+    return;
+  }
+  const acts = (i, isDir) => `<div class="acts">${isDir ? '' : `<button data-act="dl" data-i="${i}" title="Download">${svg('dl')}</button><button data-act="share" data-i="${i}" title="Send to someone on Telegram">${svg('share')}</button>`}<button data-act="mv" data-${isDir?'d':'i'}="${i}" title="Rename or move">${svg('edit')}</button><button class="del" data-act="rm" data-${isDir?'d':'i'}="${i}" title="Delete">${svg('del')}</button></div>`;
+  const tags = f => (f.encrypted ? '<span class="tag" title="Encrypted">AES</span>' : '') + (f.status === 'pending' ? '<span class="tag" title="Saved on this PC, going to Telegram">uploading…</span>' : f.status !== 'complete' ? '<span class="tag warn">incomplete</span>' : '') + (f.origin === 'telegram' ? '<span class="tag">from Telegram</span>' : '');
+  if (state.view === 'grid') {
+    el.innerHTML = '<div class="grid">' +
+      dirs.map((d, i) => `<div class="card" data-d="${i}"><div class="thumb">${folderIco()}</div><div class="cap"><div dir="auto">${esc(d.name)}</div><small>Folder</small></div>${acts(i, true)}</div>`).join('') +
+      files.map((f, i) => `<div class="card" data-i="${i}"><div class="thumb">${f.kind === 'image' && ready(f) && f.size < 25e6 ? `<img loading="lazy" src="${fileUrl(f)}" alt="">` : kindIco(f.kind)}</div><div class="cap"><div dir="auto" title="${esc(f.name)}">${esc(f.name)}</div><small>${fmtSize(f.size)}</small></div>${acts(i, false)}</div>`).join('') + '</div>';
+  } else {
+    const arrow = k => state.sort === k ? (state.asc ? ' ↑' : ' ↓') : '';
+    el.innerHTML = `<table><thead><tr><th data-sort="name">Name${arrow('name')}</th>${state.q ? '<th class="hide-sm">Folder</th>' : ''}<th class="num" data-sort="size">Size${arrow('size')}</th><th class="hide-sm" data-sort="date">Added${arrow('date')}</th><th></th></tr></thead><tbody>` +
+      dirs.map((d, i) => `<tr class="row" data-d="${i}"><td><div class="name">${folderIco()}<span dir="auto">${esc(d.name)}</span></div></td><td class="dim num">—</td><td class="dim hide-sm"></td><td>${acts(i, true)}</td></tr>`).join('') +
+      files.map((f, i) => `<tr class="row" data-i="${i}"><td><div class="name">${kindIco(f.kind)}<span dir="auto" title="${esc(f.name)}">${esc(f.name)}</span>${tags(f)}</div></td>${state.q ? `<td class="dim hide-sm" dir="auto">${esc(f.folder)}</td>` : ''}<td class="dim num">${fmtSize(f.size)}</td><td class="dim hide-sm">${fmtDate(f.created)}</td><td>${acts(i, false)}</td></tr>`).join('') +
+      '</tbody></table>';
+  }
+}
+
+$('#crumbs').addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (a) go(a.dataset.go); });
+$('#content').addEventListener('click', async e => {
+  const th = e.target.closest('th[data-sort]');
+  if (th) { const k = th.dataset.sort; state.asc = state.sort === k ? !state.asc : true; state.sort = k; store.set('sort', k); store.set('asc', state.asc ? '1' : '0'); render(); return; }
+  const b = e.target.closest('[data-act]');
+  const holder = b || e.target.closest('[data-i],[data-d]');
+  if (!holder) return;
+  const dir = holder.dataset.d !== undefined ? sorted().dirs[+holder.dataset.d] : null;
+  const file = holder.dataset.i !== undefined ? state.shown[+holder.dataset.i] : null;
+  const act = b ? b.dataset.act : 'open';
+  try {
+    if (act === 'open') dir ? go(dir.path) : openFile(file);
+    else if (act === 'dl') download(file);
+    else if (act === 'share') {
+      const to = prompt(`Send “${file.name}” to whom on Telegram?\n\nType their @username, a phone number saved in your contacts, or  me  for your Saved Messages.`, store.get('lastShare', ''));
+      if (!to || !to.trim()) return;
+      store.set('lastShare', to.trim());
+      await api('/api/share', { path: file.path, to: to.trim() });
+      toast('Sending… you can follow it in the panel at the bottom right.');
+      up.dismissed = false; poll();
+    }
+    else if (act === 'mv') {
+      const src = dir ? dir.path : file.path;
+      const dst = prompt('New name, or a full path like /Videos/name to move it:', src.split('/').pop());
+      if (!dst || dst === src.split('/').pop()) return;
+      await api('/api/move', { src, dst: dst.startsWith('/') ? dst : join(src.slice(0, src.lastIndexOf('/')) || '/', dst) });
+      toast('Moved'); refresh();
+    } else if (act === 'rm') {
+      const p = dir ? dir.path : file.path;
+      if (!confirm(`Delete “${p}”${dir ? ' and everything in it' : ''}?\nIt is also removed from the Telegram channel.`)) return;
+      const r = await api('/api/delete', { path: p });
+      toast(`Deleted ${r.deleted} file${r.deleted === 1 ? '' : 's'}`); refresh();
+    }
+  } catch (err) { toast(err.message); }
+});
+
+function download(f) { const a = document.createElement('a'); a.href = fileUrl(f, true); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }
+function ready(f) { return f.status === 'complete' || f.status === 'pending'; }
+function openFile(f) {
+  if (!ready(f)) return toast('This upload was interrupted. Upload the file again.');
+  if (['image','video','audio'].includes(f.kind)) return openViewer(f);
+  if (/\.(pdf|txt|md|srt|csv)$/i.test(f.name)) return window.open(fileUrl(f), '_blank');
+  download(f);
+}
+
+/* ---------- viewer ---------- */
+const viewer = { list: [], i: 0 };
+function openViewer(f) {
+  viewer.list = state.shown.filter(x => ['image','video','audio'].includes(x.kind) && ready(x));
+  viewer.i = Math.max(0, viewer.list.indexOf(f));
+  $('#viewer').classList.add('on'); showViewer();
+}
+function showViewer() {
+  const f = viewer.list[viewer.i], st = $('#vStage');
+  $('#vTitle').textContent = `${f.name}  ·  ${fmtSize(f.size)}`;
+  const many = viewer.list.length > 1;
+  const nav = many ? `<button class="btn icon nav prev" data-v="-1">‹</button><button class="btn icon nav next" data-v="1">›</button>` : '';
+  const url = fileUrl(f);
+  if (f.kind === 'image') {
+    st.innerHTML = `<div class="loading">Loading from Telegram…</div>${nav}`;
+    const img = new Image();
+    img.onload = () => { if (viewer.list[viewer.i] === f) st.querySelector('.loading')?.replaceWith(img); };
+    img.onerror = () => { const l = st.querySelector('.loading'); if (l) l.textContent = 'Could not load this image.'; };
+    img.src = url;
+  }
+  else if (f.kind === 'video') st.innerHTML = `<video src="${url}" controls autoplay playsinline preload="metadata"></video>${nav}`;
+  else st.innerHTML = `<div class="audio"><div class="art">${svg('audio', 1.5).replace('<svg', '<svg width="64" height="64"')}</div><div dir="auto">${esc(f.name)}</div><audio src="${url}" controls autoplay></audio></div>${nav}`;
+  const media = st.querySelector('video,audio');
+  if (media) media.addEventListener('error', () => {
+    st.innerHTML = `<div class="msg">Your browser can't play this format (for example MKV with AC3/DTS sound).<br>Click <b>Copy link</b> and open it in VLC: <i>Media › Open Network Stream</i>. It still streams without downloading everything.</div>${nav}`;
+  });
+}
+function closeViewer() { $('#viewer').classList.remove('on'); $('#vStage').innerHTML = ''; }
+function step(d) { if (viewer.list.length < 2) return; viewer.i = (viewer.i + d + viewer.list.length) % viewer.list.length; showViewer(); }
+$('#vStage').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) step(+b.dataset.v); else if (e.target === e.currentTarget) closeViewer(); });
+$('#vClose').onclick = closeViewer;
+$('#vDl').onclick = () => download(viewer.list[viewer.i]);
+$('#vLink').onclick = async () => {
+  const link = location.origin + fileUrl(viewer.list[viewer.i]);
+  try { await navigator.clipboard.writeText(link); toast('Link copied. In VLC: Media › Open Network Stream, then paste.'); }
+  catch { prompt('Copy this link:', link); }
+};
+document.addEventListener('keydown', e => {
+  if ($('#viewer').classList.contains('on')) {
+    if (e.key === 'Escape') closeViewer();
+    else if (e.key === 'ArrowRight' && e.target.tagName !== 'VIDEO') step(1);
+    else if (e.key === 'ArrowLeft' && e.target.tagName !== 'VIDEO') step(-1);
+  } else if ($('#settings').classList.contains('on')) {
+    if (e.key === 'Escape') closeSettings();
+  } else if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { e.preventDefault(); $('#q').focus(); }
+});
+
+/* ---------- search ---------- */
+let qT;
+function syncClear() { $('#qClear').style.display = $('#q').value ? 'inline-flex' : 'none'; }
+$('#q').addEventListener('input', () => { syncClear(); clearTimeout(qT); qT = setTimeout(() => { state.q = $('#q').value.trim(); load(); }, 250); });
+$('#q').addEventListener('keydown', e => { if (e.key === 'Escape') { $('#q').value = ''; syncClear(); state.q = ''; load(); } });
+$('#qClear').onclick = e => { e.preventDefault(); $('#q').value = ''; syncClear(); state.q = ''; load(); };
+
+/* ---------- toolbar ---------- */
+$('#bView').onclick = () => { state.view = state.view === 'list' ? 'grid' : 'list'; store.set('view', state.view); render(); };
+$('#bFolder').onclick = async () => {
+  const name = prompt('Folder name:'); if (!name) return;
+  try { const r = await api('/api/mkdir', { path: join(state.path, name.replace(/\//g, '_')) }); go(r.path); } catch (e) { toast(e.message); }
+};
+$('#bUp').onclick = () => $('#fFiles').click();
+$('#bUpDir').onclick = () => $('#fDir').click();
+$('#fFiles').onchange = e => { enqueue([...e.target.files].map(f => ({ file: f, rel: '' }))); e.target.value = ''; };
+$('#fDir').onchange = e => { enqueue([...e.target.files].map(f => ({ file: f, rel: f.webkitRelativePath || '' }))); e.target.value = ''; };
+$('#syncNow').onclick = async () => {
+  try { const r = await api('/api/sync?now=1', {}); toast(r.imported.length ? `Added ${r.imported.length} file(s) to Telegram Inbox` : 'Nothing new in the channel'); if (r.imported.length) refresh(); }
+  catch (e) { toast(e.message); }
+};
+
+/* ---------- drag & drop ---------- */
+let depth = 0;
+const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); depth++; $('#drop').classList.add('on'); });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--depth <= 0) { depth = 0; $('#drop').classList.remove('on'); } });
+window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('drop', async e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); depth = 0; $('#drop').classList.remove('on');
+  const entries = [...e.dataTransfer.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  const plain = [...e.dataTransfer.files];
+  if (!entries.length) return enqueue(plain.map(f => ({ file: f, rel: '' })));
+  const out = [];
+  for (const en of entries) { try { await walk(en, '', out); } catch (err) { toast('Could not read ' + en.name); } }
+  enqueue(out);
+});
+async function walk(entry, prefix, out) {
+  if (entry.isFile) { const file = await new Promise((res, rej) => entry.file(res, rej)); out.push({ file, rel: prefix + file.name }); return; }
+  if (!entry.isDirectory) return;
+  const reader = entry.createReader();
+  for (;;) {
+    const batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+    if (!batch.length) break;
+    for (const child of batch) await walk(child, prefix + entry.name + '/', out);
+  }
+}
+
+/* ---------- uploads ---------- */
+const up = { items: [], busy: false, hidden: new Set(), doneSeen: new Set(), jobs: [] };
+let pollT, panelT;
+function enqueue(list) {
+  if (!list.length) return;
+  up.dismissed = false;
+  for (const { file, rel } of list) up.items.push({ id: Math.random().toString(36).slice(2), name: rel || file.name, file, rel, dest: state.path, state: 'waiting', sent: 0, total: file.size });
+  $('#panel').classList.add('on'); $('#panel').classList.remove('min');
+  renderPanel(); pump();
+}
+async function pump() {
+  if (up.busy) return; up.busy = true;
+  let it;
+  while ((it = up.items.find(x => x.state === 'waiting'))) {
+    it.state = 'sending'; renderPanel();
+    try { await send(it); it.state = 'sent'; it.file = null; poll(); }
+    catch (e) { it.state = 'error'; it.error = e.message; }
+    renderPanel();
+  }
+  up.busy = false;
+}
+function send(it) {
+  return new Promise((res, rej) => {
+    const fd = new FormData();
+    if (it.rel) fd.append('relpath', it.rel);
+    fd.append('file', it.file, it.file.name);
+    const x = new XMLHttpRequest();
+    x.open('POST', '/api/upload?path=' + encodeURIComponent(it.dest));
+    x.upload.onprogress = e => { it.sent = e.loaded; it.total = e.total || it.total; clearTimeout(panelT); panelT = setTimeout(renderPanel, 150); };
+    x.onload = () => { if (x.status < 300) res(); else { let m = x.statusText; try { m = JSON.parse(x.responseText).error || m; } catch {} rej(new Error(m)); } };
+    x.onerror = () => rej(new Error('Connection to SpiDrive lost'));
+    x.send(fd);
+  });
+}
+async function poll() {
+  clearTimeout(pollT); up.polling = true;
+  try {
+    up.jobs = (await api('/api/jobs')).jobs;
+    let changed = false;
+    for (const j of up.jobs) if (j.state === 'done' && !up.doneSeen.has(j.id)) { up.doneSeen.add(j.id); changed = true; }
+    if (changed) refresh();
+    renderPanel();
+  } catch {}
+  const active = up.jobs.some(j => ['queued','uploading','retry','sharing'].includes(j.state)) || up.items.some(i => i.state === 'waiting' || i.state === 'sending');
+  if (active) pollT = setTimeout(poll, 1200);
+  else up.polling = false;
+}
+function renderPanel() {
+  const rows = [];
+  for (const it of up.items) {
+    if (it.state === 'sent' || up.hidden.has(it.id)) continue;
+    const pct = it.total ? Math.round(it.sent * 100 / it.total) : 0;
+    const s = it.state === 'waiting' ? 'Waiting' : it.state === 'sending' ? `Sending to SpiDrive ${pct}%` : `Failed: ${it.error}`;
+    rows.push(`<div class="job ${it.state === 'error' ? 'err' : ''}"><div class="n" dir="auto">${esc(it.name)}</div><div class="s"><span>${esc(s)}</span><span>${fmtSize(it.total)}</span></div><div class="p"><i style="width:${it.state === 'sending' ? pct : 0}%"></i></div></div>`);
+  }
+  for (const j of up.jobs) {
+    if (up.hidden.has(j.id)) continue;
+    const pct = j.total ? Math.round(j.done * 100 / j.total) : 100;
+    const s = j.state === 'queued' ? 'Waiting for Telegram' : j.state === 'uploading' ? `Uploading to Telegram ${pct}%` : j.state === 'retry' ? `Network problem, retrying soon (${j.error})` : j.state === 'sharing' ? (j.total ? `Sending ${pct}%` : 'Sending…') : j.state === 'done' ? 'Done' : `Failed: ${j.error}`;
+    rows.push(`<div class="job ${j.state === 'done' ? 'done' : j.state === 'error' || j.state === 'retry' ? 'err' : ''}"><div class="n" dir="auto">${esc(j.path)}</div><div class="s"><span>${esc(s)}</span><span>${fmtSize(j.total)}</span></div><div class="p"><i style="width:${j.state === 'queued' ? 0 : pct}%"></i></div></div>`);
+  }
+  const active = up.items.filter(i => i.state === 'waiting' || i.state === 'sending').length + up.jobs.filter(j => ['queued','uploading','retry','sharing'].includes(j.state)).length;
+  if (active && !up.dismissed) $('#panel').classList.add('on');
+  $('#pTitle').textContent = active ? `Uploading ${active} item${active === 1 ? '' : 's'}` : 'Uploads finished';
+  $('#pList').innerHTML = rows.join('') || '<div class="job"><div class="s">Nothing here</div></div>';
+  if (!rows.length && !active) $('#panel').classList.remove('on');
+}
+$('#pMin').onclick = () => $('#panel').classList.toggle('min');
+$('#pClear').onclick = () => {
+  up.dismissed = true;
+  up.items = up.items.filter(i => i.state === 'waiting' || i.state === 'sending');
+  for (const j of up.jobs) if (j.state === 'done' || j.state === 'error') up.hidden.add(j.id);
+  renderPanel();
+};
+
+/* ---------- stats ---------- */
+async function loadStats() {
+  try {
+    const s = await api('/api/stats');
+    if (state.version && s.version !== state.version) load();
+    state.version = s.version;
+    $('#chan').textContent = s.channel ? 'Channel: ' + s.channel : 'Connected';
+    if (s.channel) $('#chan2').textContent = s.channel;
+    $('#sTotal').textContent = fmtSize(s.bytes);
+    $('#sCounts').textContent = `${s.files} file${s.files === 1 ? '' : 's'} · ${s.folders} folder${s.folders === 1 ? '' : 's'}`;
+    const kinds = Object.keys(KINDS).filter(k => s.kinds[k]).sort((a, b) => s.kinds[b].bytes - s.kinds[a].bytes);
+    $('#sBar').innerHTML = kinds.map(k => `<span style="width:${s.bytes ? Math.max(1.5, s.kinds[k].bytes * 100 / s.bytes) : 0}%;background:var(--k-${k})" title="${KINDS[k]}"></span>`).join('');
+    $('#sLegend').innerHTML = kinds.map(k => `<li><i style="background:var(--k-${k})"></i><span>${KINDS[k]} <em>· ${s.kinds[k].count}</em></span><em>${fmtSize(s.kinds[k].bytes)}</em></li>`).join('') || '<li><span class="sub">No files yet</span></li>';
+    const backup = s.last_backup ? fmtDate(s.last_backup) : 'not yet';
+    $('#sMeta').innerHTML =
+      `<div><span>Encryption</span><b class="pill ${s.encryption ? 'on' : ''}">${s.encryption ? 'AES-256 on' : 'off'}</b></div>` +
+      (s.connection ? `<div><span>Connection</span><b class="pill ${s.connection.searching || s.connection.error ? 'warn' : s.connection.kind === 'direct' ? '' : 'on'}" title="${esc(s.connection.error || '')}">${esc(connLabel(s.connection))}</b></div>` : '') +
+      `<div><span>Telegram messages</span><b>${s.messages}</b></div>` +
+      `<div><span>Index backup</span><b>${esc(backup)}</b></div>` +
+      (s.sync || []).map(p => `<div title="${esc(p.local)} ⇄ ${esc(p.remote)}"><span>Sync ${esc(p.remote)}</span><b class="pill ${/^in sync/.test(p.status) ? 'on' : /error|paused/.test(p.status) ? 'warn' : ''}">${esc(p.status)}</b></div>`).join('') +
+      (s.pending ? `<div><span>Waiting to upload</span><b class="pill warn">${s.pending} · ${fmtSize(s.pending_bytes)}</b></div>` : '') +
+      (s.incomplete ? `<div><span>Interrupted uploads</span><b class="pill warn">${s.incomplete}</b></div>` : '');
+    if (s.pending && !up.polling) poll();
+  } catch (e) { $('#chan').textContent = 'Not connected'; }
+}
+/* ---------- settings ---------- */
+const setv = { data: null };
+function pairRow(p = { local: '', remote: '/Sync' }) {
+  const row = document.createElement('div'); row.className = 'pair';
+  row.innerHTML = `<input type="text" class="pl" placeholder="D:\\SpiDrive Sync" aria-label="Folder on this PC"><input type="text" class="pr" placeholder="/Sync" aria-label="Folder on the drive"><button class="btn icon sm ghost" title="Remove">✕</button>`;
+  row.querySelector('.pl').value = p.local; row.querySelector('.pr').value = p.remote;
+  row.querySelector('button').onclick = () => row.remove();
+  return row;
+}
+async function openSettings() {
+  let s;
+  try { s = await api('/api/settings'); } catch (e) { return toast(e.message); }
+  setv.data = s;
+  const sel = $('#sLetter'); if (!sel.options.length) for (let c = 68; c <= 90; c++) sel.insertAdjacentHTML('beforeend', `<option value="${String.fromCharCode(c)}">${String.fromCharCode(c)}:</option>`);
+  sel.value = (s.drive_letter || 'S:')[0];
+  $('#sSize').value = s.drive_size; $('#sEnc').checked = s.encrypt; $('#sAuto').checked = s.autostart;
+  $('#sChunk').value = s.chunk_mb; $('#sPhone').checked = s.phone_access;
+  $('#sChan').textContent = s.channel || '—'; $('#sData').textContent = s.data_dir;
+  $('#sPass').value = ''; $('#sWebPw').value = '';
+  $('#sPassBox').style.display = s.has_passphrase && s.passphrase_locked ? 'none' : '';
+  $('#sPassInfo').innerHTML = s.has_passphrase
+    ? (s.passphrase_locked ? `A passphrase is set and ${s.encrypted_files} file(s) use it, so it can't be changed. Turning encryption off only affects new uploads.` : 'A passphrase is set. Type a new one only to replace it.')
+    : 'If you lose the passphrase, encrypted files cannot be recovered.';
+  $('#sPhoneInfo').innerHTML = (s.has_web_password ? 'A password is set. Leave empty to keep it. ' : '') + `On your phone, open <b>http://&lt;this PC's IP&gt;:${s.web_port}</b>, then <i>Add to Home screen</i>.`;
+  const box = $('#sPairs'); box.innerHTML = ''; s.sync.forEach(p => box.appendChild(pairRow(p)));
+  $('#sPMode').value = s.proxy_mode || 'auto'; $('#sPLink').value = s.proxy_link || ''; $('#sPSources').value = (s.proxy_sources || []).join('\n');
+  $('#sPTestOut').textContent = ''; $('#sPStatus').textContent = 'Now: ' + connLabel(s.proxy_status) + (s.proxy_status && s.proxy_status.error ? ' — ' + s.proxy_status.error : ''); syncProxyUI();
+  document.querySelectorAll('#settings input, #settings select, #settings textarea, #setSave, #sAddPair').forEach(el => el.disabled = !s.editable);
+  $('#setRO').style.display = s.editable ? 'none' : '';
+  syncSetUI(); $('#settings').classList.add('on');
+}
+function syncSetUI() { $('#sPhoneBox').style.display = $('#sPhone').checked ? '' : 'none'; }
+function closeSettings() { $('#settings').classList.remove('on'); }
+$('#sPhone').onchange = syncSetUI;
+$('#sAddPair').onclick = () => $('#sPairs').appendChild(pairRow());
+$('#setClose').onclick = closeSettings; $('#setCancel').onclick = closeSettings;
+$('#settings').addEventListener('click', e => { if (e.target.id === 'settings') closeSettings(); });
+$('#setSave').onclick = async () => {
+  const body = {
+    drive_letter: $('#sLetter').value, drive_size: $('#sSize').value.trim(), encrypt: $('#sEnc').checked,
+    passphrase: $('#sPass').value, chunk_mb: parseInt($('#sChunk').value, 10) || 256, autostart: $('#sAuto').checked,
+    phone_access: $('#sPhone').checked, web_password: $('#sWebPw').value,
+    proxy_mode: $('#sPMode').value, proxy_link: $('#sPLink').value.trim(),
+    proxy_sources: $('#sPSources').value.split('\n').map(x => x.trim()).filter(Boolean),
+    sync: [...document.querySelectorAll('#sPairs .pair')].map(r => ({ local: r.querySelector('.pl').value, remote: r.querySelector('.pr').value })),
+  };
+  try {
+    const r = await api('/api/settings', body);
+    closeSettings();
+    if (r.restarting) waitForRestart(); else toast('Saved. Restart SpiDrive to apply.');
+  } catch (e) { toast(e.message); }
+};
+function waitForRestart() {
+  $('#restarting').classList.add('on');
+  let seenDown = false;
+  const tick = async () => {
+    try { const r = await fetch('/api/stats', { cache: 'no-store' }); if (r.ok && seenDown) return location.reload(); if (!r.ok) seenDown = true; }
+    catch { seenDown = true; }
+    setTimeout(tick, 1200);
+  };
+  setTimeout(tick, 1500);
+}
+function connLabel(c) {
+  if (!c) return '';
+  if (c.searching) return 'Looking for a proxy…';
+  return (c.kind === 'direct' ? 'Direct' : c.via) + (c.latency_ms ? ` · ${c.latency_ms} ms` : '');
+}
+function syncProxyUI() { $('#sPLinkBox').style.display = $('#sPMode').value === 'manual' ? '' : 'none'; }
+$('#sPMode').onchange = syncProxyUI;
+$('#sPTest').onclick = async e => {
+  e.preventDefault(); $('#sPTestOut').textContent = 'Testing…';
+  try { const r = await api('/api/proxy/test', { link: $('#sPLink').value.trim() }); $('#sPTestOut').textContent = r.ok ? `Works (${r.latency_ms} ms)` : 'Does not reach Telegram'; }
+  catch (err) { $('#sPTestOut').textContent = err.message; }
+};
+$('#sPFind').onclick = async e => {
+  e.preventDefault();
+  try {
+    await api('/api/proxy/find', {});
+    $('#sPStatus').textContent = 'Looking for a working route… this can take a minute.';
+    const tick = async () => { try { const s = await api('/api/proxy'); if (s.searching) return setTimeout(tick, 2000); $('#sPStatus').textContent = 'Now: ' + connLabel(s) + (s.error ? ' — ' + s.error : ''); loadStats(); } catch { setTimeout(tick, 3000); } };
+    setTimeout(tick, 2000);
+  } catch (err) { toast(err.message); }
+};
+$('#bSettings').onclick = openSettings;
+
+function refresh() { load(); loadStats(); }
+
+state.path = pathFromHash();
+load(); loadStats(); poll();
+setInterval(loadStats, 10000);
+</script>
+</body>
+</html>

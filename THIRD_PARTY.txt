@@ -1,0 +1,17 @@
+SpiDrive uses these free, open-source programs:
+
+rclone        https://rclone.org          MIT License
+              Connects SpiDrive's drive server to the drive letter.
+
+WinFsp        https://winfsp.dev          GPLv3 with FLOSS exception
+              Lets programs create drives in Windows. Installed separately
+              by the SpiDrive installer when it is missing.
+
+Telethon      https://github.com/LonamiWebs/Telethon    MIT License
+aiohttp       https://github.com/aio-libs/aiohttp       Apache 2.0
+cryptography  https://github.com/pyca/cryptography      Apache 2.0 / BSD
+pystray       https://github.com/moses-palmer/pystray   LGPLv3
+Pillow        https://python-pillow.org                 MIT-CMU (HPND)
+Python        https://www.python.org                    PSF License
+
+SpiDrive uses the Telegram API. It is not made by or affiliated with Telegram.

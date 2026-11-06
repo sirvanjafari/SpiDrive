@@ -1,0 +1,28 @@
+# Secrets: never upload these
+config.py
+app_id.py
+*.session
+*.session-journal
+settings.json
+
+# Your files and the local index
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Generated / downloaded
+venv/
+__pycache__/
+*.pyc
+build/
+dist/
+installer/
+rclone.exe
+*.msi
+
+# Old launch scripts (replaced by SpiDrive.bat)
+install.bat
+setup_rclone.bat
+start.bat
+setup_drive.bat

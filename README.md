@@ -45,7 +45,7 @@ Requirements: Windows 10 or 11 and [Python 3.10+](https://www.python.org/downloa
 (tick *"Add python.exe to PATH"* during installation).
 
 ```bat
-git clone https://github.com/<your-username>/SpiDrive.git
+git clone https://github.com/sirvanjafari/SpiDrive.git
 cd SpiDrive
 SpiDrive.bat
 ```
@@ -114,18 +114,19 @@ messages belong to which file. Encryption uses AES-256-CTR with a key derived fr
   you send.
 - Telegram stores your data. Keep another copy of anything irreplaceable.
 
-## Team
+## Contributing
 
-| Name | Role |
-|---|---|
-| ______________________ | ______________________ |
-| ______________________ | ______________________ |
-| ______________________ | ______________________ |
-| ______________________ | ______________________ |
+Found a bug or have an idea? Open an issue in the [Issues](../../issues) tab.
+Pull requests are welcome.
 
 ## License
 
-______________________ <!-- for example MIT or GPL-3.0: add the matching LICENSE file -->
+Copyright (C) 2026 Sirvan Jafari
+
+SpiDrive is free software, licensed under the GNU General Public License v3.0.
+You may use, study, share and improve it, but you must keep this copyright
+notice and the names of the original authors, and share your changes under
+the same license. See [LICENSE](LICENSE) for the full text.
 
 ## Disclaimer
 

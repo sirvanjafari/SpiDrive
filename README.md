@@ -34,7 +34,7 @@ with us, and your encryption key never leaves your device.
 ### Option 1: Installer (recommended)
 
 1. Download **`SpiDrive-Setup.exe`** from the [Releases](../../releases) page and run it.
-2. A setup page opens in your browser. Log in with your phone number and the code Telegram sends you.
+2. A setup page opens in your browser. Enter your Telegram API ID and API hash (create them for free at [my.telegram.org/apps](https://my.telegram.org/apps); the page shows how), then log in with your phone number and the code Telegram sends you.
 3. Choose a storage channel, encryption and a drive letter. Done.
 
 Windows may show *"Windows protected your PC"* the first time. Click **More info → Run anyway**.

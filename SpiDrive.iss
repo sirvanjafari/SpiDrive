@@ -1,6 +1,8 @@
 ; SpiDrive installer (Inno Setup 6). build.bat compiles it into dist\SpiDrive-Setup.exe
 #define AppName "SpiDrive"
-#define AppVersion "1.0.0"
+#ifndef AppVersion
+  #define AppVersion "1.0.0"
+#endif
 #define HasWinFsp FileExists(AddBackslash(SourcePath) + "build\winfsp.msi")
 
 [Setup]

@@ -1,0 +1,80 @@
+# Builds SpiDrive-Setup.exe on GitHub's Windows machine.
+# - When you publish a Release, the installer is attached to that release automatically.
+# - "Run workflow" on the Actions tab makes a test build you can download from the run page.
+name: Build Windows installer
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pystray pillow
+          pip install cryptg
+          if ($LASTEXITCODE -ne 0) { Write-Host "cryptg is optional, skipped"; $global:LASTEXITCODE = 0 }
+
+      - name: Download rclone and WinFsp
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://downloads.rclone.org/rclone-current-windows-amd64.zip -OutFile rclone.zip
+          Expand-Archive rclone.zip -DestinationPath rclone-tmp
+          Copy-Item (Get-ChildItem rclone-tmp -Recurse -Filter rclone.exe | Select-Object -First 1).FullName rclone.exe
+          New-Item -ItemType Directory -Force installer | Out-Null
+          gh release download --repo winfsp/winfsp --pattern "winfsp-*.msi" --dir installer
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Prepare icon, rclone, WinFsp
+        # No config.py here, so no API ID is built in: each user enters their own in the setup wizard.
+        run: python build_helper.py
+
+      - name: Build SpiDrive.exe
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --log-level WARN --windowed --name SpiDrive `
+            --icon build\spidrive.ico --add-data "web;web" --add-binary "build\rclone.exe;." `
+            --collect-submodules telethon --collect-submodules python_socks `
+            --hidden-import proxy --hidden-import pystray._win32 --hidden-import app_id `
+            --hidden-import server --hidden-import setup_server `
+            app.py
+
+      - name: Build SpiDrive-Setup.exe
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.release.tag_name }}".TrimStart("v")
+          if (-not $v) { $v = "0.0.0-test" }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$v" SpiDrive.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Get-Item dist\SpiDrive-Setup.exe
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/SpiDrive-Setup.exe --clobber
+
+      - name: Keep the test build
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpiDrive-Setup
+          path: dist/SpiDrive-Setup.exe

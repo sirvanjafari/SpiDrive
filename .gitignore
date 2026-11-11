@@ -26,3 +26,4 @@ install.bat
 setup_rclone.bat
 start.bat
 setup_drive.bat
+   Update .gitignore
